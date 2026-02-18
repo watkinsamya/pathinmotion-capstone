@@ -4,9 +4,13 @@ import { Card, Button, Divider, Badge } from "../components/UI";
 
 export default function ResumeUpload() {
   function handleFakeUpload() {
-    // demo-only: mark resume as uploaded
     localStorage.setItem("pm_resume_uploaded", "true");
     alert("Demo: Resume uploaded ✅");
+  }
+
+  function handleClear() {
+    localStorage.removeItem("pm_resume_uploaded");
+    alert("Demo: Resume cleared");
   }
 
   const uploaded = localStorage.getItem("pm_resume_uploaded") === "true";
@@ -15,24 +19,29 @@ export default function ResumeUpload() {
     <>
       <AppShell title="Resume">
         <div className="space-y-4">
-          <Card className="bg-gradient-to-b from-white/10 to-slate-900/60">
+          {/* Upload Card */}
+          <Card className="bg-gradient-to-b from-white to-slate-100 text-brand-ink">
             <h2 className="text-xl font-semibold">Resume Upload</h2>
-            <p className="text-sm text-white/60 mt-1">
+            <p className="text-sm text-black/60 mt-1">
               Upload once so PathinMotion can generate smarter matches.
             </p>
 
             <div className="mt-4 flex gap-2">
-              {uploaded ? <Badge tone="success">Uploaded</Badge> : <Badge tone="warning">Not uploaded</Badge>}
+              {uploaded ? (
+                <Badge tone="success">Uploaded</Badge>
+              ) : (
+                <Badge tone="warn">Not uploaded</Badge>
+              )}
               <Badge>PDF • DOCX</Badge>
             </div>
 
             <Divider className="my-4" />
 
-            <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-5 text-center">
-              <p className="text-sm text-white/70">
+            <div className="rounded-2xl border border-dashed border-black/15 bg-white/70 p-5 text-center">
+              <p className="text-sm text-black/70">
                 Drag & drop your resume here (demo)
               </p>
-              <p className="text-xs text-white/45 mt-1">
+              <p className="text-xs text-black/45 mt-1">
                 For now, we’re simulating upload while the backend comes next.
               </p>
 
@@ -43,10 +52,7 @@ export default function ResumeUpload() {
                 <Button
                   variant="secondary"
                   className="flex-1"
-                  onClick={() => {
-                    localStorage.removeItem("pm_resume_uploaded");
-                    alert("Demo: Resume cleared");
-                  }}
+                  onClick={handleClear}
                 >
                   Clear
                 </Button>
@@ -54,12 +60,13 @@ export default function ResumeUpload() {
             </div>
           </Card>
 
-          <Card>
+          {/* What Happens Next */}
+          <Card className="text-brand-ink">
             <h3 className="font-semibold">What happens next?</h3>
-            <ul className="mt-2 text-sm text-white/60 space-y-1 list-disc pl-5">
-              <li>Extract skills + keywords</li>
-              <li>Compare to job requirements</li>
-              <li>Generate a match score + recommendations</li>
+            <ul className="mt-2 text-sm text-black/70 space-y-1 list-disc pl-5">
+              <li>Extract skills and keywords from your resume</li>
+              <li>Compare your experience to job requirements</li>
+              <li>Generate match scores and personalized recommendations</li>
             </ul>
           </Card>
         </div>

@@ -1,76 +1,80 @@
 // src/components/UI.jsx
+import React from "react";
 
-export function cn(...classes) {
-  return classes.filter(Boolean).join(" ");
-}
-
-export function Button({
-  children,
-  variant = "primary",
-  className = "",
-  ...props
-}) {
-  const base =
-    "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
-
-  const variants = {
-    primary: "bg-pink-500 text-white hover:bg-pink-400",
-    secondary: "bg-white/10 text-white hover:bg-white/15 border border-white/10",
-    ghost: "bg-transparent text-white hover:bg-white/10",
-  };
-
-  return (
-    <button className={cn(base, variants[variant], className)} {...props}>
-      {children}
-    </button>
-  );
-}
-
-export function Card({ children, className = "" }) {
+export function Card({ className = "", children }) {
   return (
     <div
-      className={cn(
-        "rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur p-5 shadow-lg",
-        className
-      )}
+      className={[
+        "rounded-2xl bg-white/80 backdrop-blur border border-black/5 shadow-soft",
+        "p-5",
+        className,
+      ].join(" ")}
     >
       {children}
     </div>
   );
 }
 
-export function Input({ className = "", ...props }) {
+export function Button({
+  variant = "primary",
+  className = "",
+  children,
+  ...props
+}) {
+  const base =
+    "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition active:scale-[0.99]";
+  const styles = {
+    primary:
+      "bg-brand-tangerine text-white hover:opacity-95 shadow-soft",
+    secondary:
+      "bg-white text-brand-ink border border-black/10 hover:bg-black/5",
+    ghost: "bg-transparent text-brand-ink hover:bg-black/5",
+  };
+
   return (
-    <input
-      className={cn(
-        "w-full rounded-xl bg-slate-900 border border-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 outline-none focus:ring-2 focus:ring-pink-500/40",
-        className
-      )}
+    <button
+      className={[base, styles[variant], className].join(" ")}
       {...props}
-    />
+    >
+      {children}
+    </button>
   );
 }
 
-export function Badge({ children, tone = "neutral", className = "" }) {
+export function Badge({ tone = "default", className = "", children }) {
   const tones = {
-    neutral: "bg-white/10 text-white/80 border border-white/10",
-    success: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/20",
-    warning: "bg-amber-500/15 text-amber-300 border border-amber-500/20",
+    default: "bg-black/5 text-brand-ink",
+    success: "bg-emerald-500/15 text-emerald-700",
+    warn: "bg-amber-500/15 text-amber-800",
+    pink: "bg-brand-baby text-brand-ink",
   };
 
   return (
     <span
-      className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
+      className={[
+        "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold",
         tones[tone],
-        className
-      )}
+        className,
+      ].join(" ")}
     >
       {children}
     </span>
   );
 }
 
+export function Input({ className = "", ...props }) {
+  return (
+    <input
+      className={[
+        "w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm",
+        "outline-none focus:ring-2 focus:ring-brand-sun/60 focus:border-brand-sun",
+        className,
+      ].join(" ")}
+      {...props}
+    />
+  );
+}
+
 export function Divider({ className = "" }) {
-  return <div className={cn("h-px w-full bg-white/10", className)} />;
+  return <div className={["h-px w-full bg-black/10", className].join(" ")} />;
 }

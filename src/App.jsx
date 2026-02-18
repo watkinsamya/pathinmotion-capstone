@@ -6,6 +6,8 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import ResumeUpload from "./pages/ResumeUpload";
 import Matches from "./pages/Matches";
+import Mentors from "./pages/Mentors";
+import Scholarships from "./pages/Scholarships";
 
 export default function App() {
   return (
@@ -17,6 +19,8 @@ export default function App() {
       <Route path="/profile" element={<Profile />} />
       <Route path="/resume" element={<ResumeUpload />} />
       <Route path="/matches" element={<Matches />} />
+      <Route path="/mentors" element={<Mentors />} />
+      <Route path="/scholarships" element={<Scholarships />} />
     </Routes>
   );
 }
