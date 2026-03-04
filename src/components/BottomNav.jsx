@@ -1,10 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Sparkles, Upload, User } from "lucide-react";
+import { Home, Sparkles, Briefcase, User } from "lucide-react";
 
 const tabs = [
   { to: "/dashboard", label: "Home", icon: Home },
   { to: "/matches", label: "Matches", icon: Sparkles },
-  { to: "/resume", label: "Resume", icon: Upload },
+  { to: "/jobs", label: "Jobs", icon: Briefcase },
   { to: "/profile", label: "Profile", icon: User },
 ];
 
@@ -16,7 +16,8 @@ export default function BottomNav() {
       <div className="w-full max-w-[390px]">
         <div className="mx-2 rounded-2xl border border-white/10 bg-slate-900/70 backdrop-blur shadow-xl px-3 py-2 flex justify-between">
           {tabs.map(({ to, label, icon: Icon }) => {
-            const active = pathname === to;
+            const active = pathname === to || pathname.startsWith(to);
+
             return (
               <Link
                 key={to}
@@ -26,6 +27,7 @@ export default function BottomNav() {
                 }`}
               >
                 <Icon size={18} className={active ? "opacity-100" : "opacity-70"} />
+
                 <span className={`text-xs ${active ? "text-white" : "text-white/70"}`}>
                   {label}
                 </span>
