@@ -5,13 +5,13 @@ import BottomNav from "../components/BottomNav";
 import { Card, Badge, Button, Divider } from "../components/UI";
 import { jobs as JOBS } from "../data/jobs";
 import { useApp } from "../context/AppContext";
+import { calculateMatchScore } from "../lib/matchScore";
 
 export default function JobDetails() {
   const { id } = useParams();
   const { state, actions } = useApp();
 
   const job = useMemo(() => JOBS.find((j) => j.id === id), [id]);
-  const isSaved = job ? state.savedJobs.includes(job.id) : false;
 
   if (!job) {
     return (
@@ -20,7 +20,7 @@ export default function JobDetails() {
           <Card className="text-brand-ink">
             <h2 className="text-lg font-semibold">Job not found</h2>
             <p className="text-sm text-black/60 mt-2">
-              The job you selected doesn’t exist in the current dataset.
+              The selected job does not exist.
             </p>
           </Card>
         </AppShell>
@@ -29,27 +29,24 @@ export default function JobDetails() {
     );
   }
 
+  const match = calculateMatchScore(state.extractedSkills, job.requirements);
+  const isSavedJob = state.savedJobs.includes(job.id);
+
   return (
     <>
       <AppShell title="Job details">
         <Card className="text-brand-ink">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+            <div>
               <h2 className="text-xl font-semibold">{job.title}</h2>
               <p className="text-sm text-black/60 mt-1">{job.company}</p>
               <p className="text-xs text-black/50 mt-2">
                 {job.location} • {job.type} • {job.salary}
               </p>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                {job.tags.map((t) => (
-                  <Badge key={t}>{t}</Badge>
-                ))}
-              </div>
             </div>
 
-            <Badge tone={job.location.toLowerCase().includes("remote") ? "success" : "default"}>
-              {job.location.toLowerCase().includes("remote") ? "Remote" : "On-site/Hybrid"}
+            <Badge tone={match.score >= 70 ? "success" : match.score >= 40 ? "warn" : "pink"}>
+              {match.score}% Match
             </Badge>
           </div>
 
@@ -69,19 +66,31 @@ export default function JobDetails() {
             ))}
           </ul>
 
+          <Divider className="my-4" />
+
+          <h3 className="font-semibold">Why this matched</h3>
+          <p className="text-sm text-black/70 mt-2">
+            <strong>Matched skills:</strong>{" "}
+            {match.matchedSkills.length > 0 ? match.matchedSkills.join(", ") : "None yet"}
+          </p>
+          <p className="text-sm text-black/70 mt-2">
+            <strong>Missing skills:</strong>{" "}
+            {match.missingSkills.length > 0 ? match.missingSkills.join(", ") : "None"}
+          </p>
+
           <div className="mt-5 flex gap-3">
             <Button
+              variant={isSavedJob ? "primary" : "secondary"}
               className="flex-1"
-              variant={isSaved ? "primary" : "secondary"}
               onClick={() => actions.toggleSavedJob(job.id)}
             >
-              {isSaved ? "Saved" : "Save job"}
+              {isSavedJob ? "Saved Job" : "Save Job"}
             </Button>
 
             <Button
-              className="flex-1"
               variant="secondary"
-              onClick={() => alert("Demo: Apply flow coming in Sprint 3")}
+              className="flex-1"
+              onClick={() => alert("Demo: Apply flow coming next sprint")}
             >
               Apply
             </Button>

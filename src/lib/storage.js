@@ -1,4 +1,4 @@
-const KEY = "pim_state_v1";
+const KEY = "pathinmotion_state_v1";
 
 export function loadState() {
   try {
@@ -10,5 +10,9 @@ export function loadState() {
 }
 
 export function saveState(state) {
-  localStorage.setItem(KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+  } catch {
+    // ignore
+  }
 }

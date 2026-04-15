@@ -6,68 +6,89 @@ const AppContext = createContext(null);
 const defaultState = {
   user: { name: "Amya", email: "demo@pathinmotion.com" },
 
-  // AI matched jobs
   savedMatches: [],
-
-  // General browsing jobs
   savedJobs: [],
-
-  // Scholarships
   savedScholarships: [],
+
+  resumeUploaded: false,
+  resumeText: "",
+  extractedSkills: [],
+  resumeSummary: "",
+  targetRoles: []
 };
 
 export function AppProvider({ children }) {
-  const [state, setState] = useState(() => loadState() ?? defaultState);
+  const [state, setState] = useState(() => ({
+    ...defaultState,
+    ...(loadState() ?? {})
+  }));
 
   useEffect(() => {
     saveState(state);
   }, [state]);
 
-  const actions = useMemo(() => ({
+  const actions = useMemo(
+    () => ({
+      toggleSavedMatch(id) {
+        setState((s) => {
+          const exists = s.savedMatches.includes(id);
+          return {
+            ...s,
+            savedMatches: exists
+              ? s.savedMatches.filter((x) => x !== id)
+              : [...s.savedMatches, id]
+          };
+        });
+      },
 
-    /* ---------------- MATCHES ---------------- */
-    toggleSavedMatch(id) {
-      setState((s) => {
-        const exists = s.savedMatches.includes(id);
+      toggleSavedJob(id) {
+        setState((s) => {
+          const exists = s.savedJobs.includes(id);
+          return {
+            ...s,
+            savedJobs: exists
+              ? s.savedJobs.filter((x) => x !== id)
+              : [...s.savedJobs, id]
+          };
+        });
+      },
 
-        return {
+      toggleSavedScholarship(id) {
+        setState((s) => {
+          const exists = s.savedScholarships.includes(id);
+          return {
+            ...s,
+            savedScholarships: exists
+              ? s.savedScholarships.filter((x) => x !== id)
+              : [...s.savedScholarships, id]
+          };
+        });
+      },
+
+      setResumeAnalysis({ resumeText, skills, summary, targetRoles }) {
+        setState((s) => ({
           ...s,
-          savedMatches: exists
-            ? s.savedMatches.filter((x) => x !== id)
-            : [...s.savedMatches, id],
-        };
-      });
-    },
+          resumeUploaded: true,
+          resumeText,
+          extractedSkills: skills,
+          resumeSummary: summary,
+          targetRoles
+        }));
+      },
 
-    /* ---------------- JOBS ---------------- */
-    toggleSavedJob(id) {
-      setState((s) => {
-        const exists = s.savedJobs.includes(id);
-
-        return {
+      clearResume() {
+        setState((s) => ({
           ...s,
-          savedJobs: exists
-            ? s.savedJobs.filter((x) => x !== id)
-            : [...s.savedJobs, id],
-        };
-      });
-    },
-
-    /* ---------------- SCHOLARSHIPS ---------------- */
-    toggleSavedScholarship(id) {
-      setState((s) => {
-        const exists = s.savedScholarships.includes(id);
-
-        return {
-          ...s,
-          savedScholarships: exists
-            ? s.savedScholarships.filter((x) => x !== id)
-            : [...s.savedScholarships, id],
-        };
-      });
-    },
-
-  }), []);
+          resumeUploaded: false,
+          resumeText: "",
+          extractedSkills: [],
+          resumeSummary: "",
+          targetRoles: []
+        }));
+      }
+    }),
+    []
+  );
 
   return (
     <AppContext.Provider value={{ state, actions }}>
@@ -78,10 +99,6 @@ export function AppProvider({ children }) {
 
 export function useApp() {
   const ctx = useContext(AppContext);
-
-  if (!ctx) {
-    throw new Error("useApp must be used inside AppProvider");
-  }
-
+  if (!ctx) throw new Error("useApp must be used inside AppProvider");
   return ctx;
 }

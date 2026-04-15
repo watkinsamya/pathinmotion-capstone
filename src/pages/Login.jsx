@@ -1,65 +1,131 @@
+import { useState } from "react";
 import AppShell from "../components/AppShell";
-import { Button, Card, Divider, Input } from "../components/UI";
-import { Link, useNavigate } from "react-router-dom";
+import { Button, Card, Input, Divider } from "../components/UI";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const navigate = useNavigate();
 
-  function handleDemoLogin() {
-    // demo-only
+  const [email, setEmail] = useState("amya@email.com");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  function handleSignIn(e) {
+    e.preventDefault();
+    setError("");
+
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter your email and password.");
+      return;
+    }
+
+    // Demo login storage
+    const existingProfile =
+      JSON.parse(localStorage.getItem("pm_profile")) || {};
+
+    const nameGuess =
+      existingProfile.name ||
+      email.split("@")[0].replace(/^\w/, (c) => c.toUpperCase());
+
     localStorage.setItem("pm_demo_authed", "true");
+    localStorage.setItem(
+      "pm_profile",
+      JSON.stringify({
+        name: nameGuess,
+        email,
+        role: existingProfile.role || "Early-career Software Engineer",
+        location: existingProfile.location || "Detroit, MI",
+        skills: existingProfile.skills || ["React", "UI/UX", "SQL"],
+      })
+    );
+
     navigate("/dashboard");
+  }
+
+  function handleContinueDemo() {
+    localStorage.setItem("pm_demo_authed", "true");
+    localStorage.setItem(
+      "pm_profile",
+      JSON.stringify({
+        name: "Amya",
+        email: "demo@pathinmotion.com",
+        role: "Early-career Software Engineer",
+        location: "Detroit, MI",
+        skills: ["React", "UI/UX", "SQL"],
+      })
+    );
+
+    navigate("/dashboard");
+  }
+
+  function handleGoToRegister() {
+    navigate("/register");
   }
 
   return (
     <AppShell title="Sign In">
       <div className="space-y-4">
-        {/* Hero */}
-        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-pink-500/20 to-slate-900/60 p-5">
-          <p className="text-white/70 text-sm">Welcome back to</p>
-          <h2 className="text-2xl font-semibold tracking-tight">PathinMotion</h2>
-          <p className="text-white/55 text-sm mt-1">
+        <div className="rounded-2xl border border-black/5 bg-gradient-to-b from-[#F7D4D8]/60 to-white p-5 shadow-sm">
+          <p className="text-sm text-black/50">Welcome back to</p>
+          <h2 className="text-3xl font-semibold text-brand-ink mt-1">
+            PathinMotion
+          </h2>
+          <p className="text-black/60 text-sm mt-2">
             Sign in to view your matches and keep your progress.
           </p>
         </div>
 
-        {/* Form */}
-        <Card>
+        <Card className="text-brand-ink">
+          <form className="space-y-4" onSubmit={handleSignIn}>
+            <div>
+              <label className="text-xs text-black/60">Email</label>
+              <Input
+                type="email"
+                placeholder="amya@email.com"
+                className="mt-1"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-black/60">Password</label>
+              <Input
+                type="password"
+                placeholder="Enter your password"
+                className="mt-1"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            <Button className="w-full" type="submit">
+              Sign In
+            </Button>
+          </form>
+
+          <Divider className="my-4" />
+
           <div className="space-y-3">
-            <div>
-              <label className="text-xs text-white/60">Email</label>
-              <Input placeholder="amya@email.com" className="mt-1" />
-            </div>
-
-            <div>
-              <label className="text-xs text-white/60">Password</label>
-              <Input type="password" placeholder="••••••••" className="mt-1" />
-            </div>
-
-            <Button className="w-full">Sign In</Button>
-
-            <button className="w-full text-xs text-white/60 hover:text-white transition">
-              Forgot password?
-            </button>
-
-            <Divider />
-
-            <Button variant="secondary" className="w-full" onClick={handleDemoLogin}>
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={handleContinueDemo}
+            >
               Continue as Demo
             </Button>
 
-            <p className="text-xs text-white/50 text-center">
-              Don’t have an account?{" "}
-              <Link to="/register" className="text-pink-300 hover:text-pink-200">
-                Create one
-              </Link>
-            </p>
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={handleGoToRegister}
+            >
+              Create Account
+            </Button>
           </div>
         </Card>
-
-        <p className="text-[11px] text-white/40 text-center leading-relaxed">
-          Demo mode is for showcasing your product flow. Real authentication comes next.
-        </p>
       </div>
     </AppShell>
   );
