@@ -10,7 +10,8 @@ import Mentors from "./pages/Mentors";
 import Scholarships from "./pages/Scholarships";
 import Jobs from "./pages/Jobs";
 import JobDetails from "./pages/JobDetails";
-import SavedJobs from "./pages/SavedJobs";
+import AppliedJobs from "./pages/AppliedJobs";
+import Recommendations from "./pages/Recommendations";
 
 export default function App() {
   return (
@@ -26,7 +27,8 @@ export default function App() {
       <Route path="/scholarships" element={<Scholarships />} />
       <Route path="/jobs" element={<Jobs />} />
       <Route path="/jobs/:id" element={<JobDetails />} />
-      <Route path="/saved-jobs" element={<SavedJobs />} />
+      <Route path="/applied-jobs" element={<AppliedJobs />} />
+      <Route path="/recommendations" element={<Recommendations />} />
     </Routes>
   );
 }

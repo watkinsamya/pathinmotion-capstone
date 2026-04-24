@@ -5,23 +5,19 @@ const AppContext = createContext(null);
 
 const defaultState = {
   user: { name: "Amya", email: "demo@pathinmotion.com" },
-
   savedMatches: [],
-  savedJobs: [],
   savedScholarships: [],
-
+  savedJobs: [],
+  appliedJobs: [],
   resumeUploaded: false,
   resumeText: "",
-  extractedSkills: [],
   resumeSummary: "",
-  targetRoles: []
+  extractedSkills: [],
+  targetRoles: [],
 };
 
 export function AppProvider({ children }) {
-  const [state, setState] = useState(() => ({
-    ...defaultState,
-    ...(loadState() ?? {})
-  }));
+  const [state, setState] = useState(() => loadState() ?? defaultState);
 
   useEffect(() => {
     saveState(state);
@@ -30,39 +26,66 @@ export function AppProvider({ children }) {
   const actions = useMemo(
     () => ({
       toggleSavedMatch(id) {
-        setState((s) => {
-          const exists = s.savedMatches.includes(id);
-          return {
-            ...s,
-            savedMatches: exists
-              ? s.savedMatches.filter((x) => x !== id)
-              : [...s.savedMatches, id]
-          };
-        });
-      },
-
-      toggleSavedJob(id) {
-        setState((s) => {
-          const exists = s.savedJobs.includes(id);
-          return {
-            ...s,
-            savedJobs: exists
-              ? s.savedJobs.filter((x) => x !== id)
-              : [...s.savedJobs, id]
-          };
-        });
+        setState((s) => ({
+          ...s,
+          savedMatches: s.savedMatches.includes(id)
+            ? s.savedMatches.filter((x) => x !== id)
+            : [...s.savedMatches, id],
+        }));
       },
 
       toggleSavedScholarship(id) {
+        setState((s) => ({
+          ...s,
+          savedScholarships: s.savedScholarships.includes(id)
+            ? s.savedScholarships.filter((x) => x !== id)
+            : [...s.savedScholarships, id],
+        }));
+      },
+
+      toggleSavedJob(id) {
+        setState((s) => ({
+          ...s,
+          savedJobs: s.savedJobs.includes(id)
+            ? s.savedJobs.filter((x) => x !== id)
+            : [...s.savedJobs, id],
+        }));
+      },
+
+      applyToJob(jobId) {
         setState((s) => {
-          const exists = s.savedScholarships.includes(id);
+          const alreadyApplied = s.appliedJobs.some((job) => job.id === jobId);
+
+          if (alreadyApplied) return s;
+
           return {
             ...s,
-            savedScholarships: exists
-              ? s.savedScholarships.filter((x) => x !== id)
-              : [...s.savedScholarships, id]
+            appliedJobs: [
+              ...s.appliedJobs,
+              {
+                id: jobId,
+                status: "Applied",
+                appliedDate: new Date().toLocaleDateString(),
+              },
+            ],
           };
         });
+      },
+
+      updateApplicationStatus(jobId, status) {
+        setState((s) => ({
+          ...s,
+          appliedJobs: s.appliedJobs.map((job) =>
+            job.id === jobId ? { ...job, status } : job
+          ),
+        }));
+      },
+
+      removeAppliedJob(jobId) {
+        setState((s) => ({
+          ...s,
+          appliedJobs: s.appliedJobs.filter((job) => job.id !== jobId),
+        }));
       },
 
       setResumeAnalysis({ resumeText, skills, summary, targetRoles }) {
@@ -72,7 +95,7 @@ export function AppProvider({ children }) {
           resumeText,
           extractedSkills: skills,
           resumeSummary: summary,
-          targetRoles
+          targetRoles,
         }));
       },
 
@@ -81,11 +104,11 @@ export function AppProvider({ children }) {
           ...s,
           resumeUploaded: false,
           resumeText: "",
-          extractedSkills: [],
           resumeSummary: "",
-          targetRoles: []
+          extractedSkills: [],
+          targetRoles: [],
         }));
-      }
+      },
     }),
     []
   );

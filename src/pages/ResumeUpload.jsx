@@ -20,9 +20,8 @@ export default function ResumeUpload() {
   const [error, setError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
 
-  // 🔥 ANALYZE (WORKS FOR BOTH upload + paste)
   async function handleAnalyzeResume() {
-    const textToAnalyze = (resumeText || uploadedResumeText).trim();
+    const textToAnalyze = (uploadedResumeText || resumeText).trim();
 
     if (!textToAnalyze) {
       setError("Please upload a file or paste resume text.");
@@ -41,7 +40,15 @@ export default function ResumeUpload() {
         body: JSON.stringify({ resumeText: textToAnalyze }),
       });
 
-      const data = await res.json();
+      const raw = await res.text();
+      console.log("ANALYZE RAW:", raw);
+
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        throw new Error("Server returned HTML instead of JSON.");
+      }
 
       if (!res.ok) {
         throw new Error(data.error || "Failed to analyze resume");
@@ -51,17 +58,16 @@ export default function ResumeUpload() {
         resumeText: textToAnalyze,
         skills: data.skills || [],
         summary: data.summary || "",
-        targetRoles: data.targetRoles || [],
+        targetRoles: data.targetRoles || data.roles || [],
       });
-
     } catch (err) {
+      console.error("ANALYZE ERROR:", err);
       setError(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
   }
 
-  // 🔥 FILE UPLOAD (REAL BACKEND)
   async function handleFileUpload(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -102,9 +108,7 @@ export default function ResumeUpload() {
 
       setUploadedResumeText(extractedText);
       setResumeText(extractedText);
-
       setUploadSuccess("Resume uploaded successfully. Click Analyze.");
-
     } catch (err) {
       console.error("UPLOAD ERROR:", err);
       setUploadedResumeText("");
@@ -118,6 +122,7 @@ export default function ResumeUpload() {
   function handleUseSample() {
     setResumeText(SAMPLE_RESUME);
     setUploadedResumeText("");
+    setUploadedFileName("");
     setError("");
     setUploadSuccess("Using sample resume.");
   }
@@ -135,15 +140,12 @@ export default function ResumeUpload() {
     <>
       <AppShell title="Resume">
         <div className="space-y-4">
-
-          {/* HEADER */}
           <Card className="bg-gradient-to-b from-white to-slate-100 text-brand-ink">
-            <h2 className="text-xl font-semibold">
-              Resume Upload & AI Analysis
-            </h2>
+            <h2 className="text-xl font-semibold">Resume Upload & AI Analysis</h2>
 
             <p className="text-sm text-black/60 mt-1">
-              Upload a file OR paste your resume. AI will extract skills and generate matches.
+              Upload a file or paste your resume text. Then analyze it to extract
+              skills and generate AI-powered career matches.
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -152,12 +154,12 @@ export default function ResumeUpload() {
               ) : (
                 <Badge tone="warn">No resume analyzed</Badge>
               )}
-              <Badge>{state.extractedSkills.length} skills found</Badge>
+
+              <Badge>{state.extractedSkills?.length || 0} skills found</Badge>
             </div>
 
             <Divider className="my-4" />
 
-            {/* FILE UPLOAD */}
             <div className="space-y-3">
               <label className="text-sm font-medium text-black/70">
                 Upload resume file
@@ -176,11 +178,14 @@ export default function ResumeUpload() {
                 </p>
               )}
 
+              {uploadingFile && (
+                <p className="text-sm text-black/60">Uploading file...</p>
+              )}
+
               {uploadSuccess && (
                 <p className="text-sm text-green-600">{uploadSuccess}</p>
               )}
 
-              {/* TEXT INPUT */}
               <label className="text-sm font-medium text-black/70">
                 Or paste resume text
               </label>
@@ -193,12 +198,8 @@ export default function ResumeUpload() {
               />
             </div>
 
-            {/* ERROR */}
-            {error && (
-              <p className="mt-3 text-sm text-red-600">{error}</p>
-            )}
+            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
-            {/* BUTTONS */}
             <div className="mt-4 flex flex-wrap gap-3">
               <Button
                 onClick={handleAnalyzeResume}
@@ -217,7 +218,6 @@ export default function ResumeUpload() {
             </div>
           </Card>
 
-          {/* AI SUMMARY */}
           <Card className="text-brand-ink">
             <h3 className="font-semibold">AI Summary</h3>
             <p className="mt-2 text-sm text-black/70">
@@ -225,10 +225,9 @@ export default function ResumeUpload() {
             </p>
           </Card>
 
-          {/* SKILLS */}
           <Card className="text-brand-ink">
             <h3 className="font-semibold">Extracted Skills</h3>
-            {state.extractedSkills.length === 0 ? (
+            {state.extractedSkills?.length === 0 ? (
               <p className="mt-2 text-sm text-black/60">
                 No skills extracted yet.
               </p>
@@ -241,10 +240,9 @@ export default function ResumeUpload() {
             )}
           </Card>
 
-          {/* ROLES */}
           <Card className="text-brand-ink">
             <h3 className="font-semibold">Suggested Target Roles</h3>
-            {state.targetRoles.length === 0 ? (
+            {state.targetRoles?.length === 0 ? (
               <p className="mt-2 text-sm text-black/60">
                 No roles suggested yet.
               </p>

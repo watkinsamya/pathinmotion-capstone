@@ -1,77 +1,97 @@
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import BottomNav from "../components/BottomNav";
-import { Card, Badge, Button } from "../components/UI";
+import { Card, Badge, Button, Input, Divider } from "../components/UI";
+import { jobs } from "../data/jobs";
 import { useApp } from "../context/AppContext";
 
-// AI Matches are a curated list with match scores.
-// For now this is mock data (Sprint 2/3 can replace with real scoring).
-const matchedJobs = [
-  {
-    id: "job-frontend-intern",
-    title: "Frontend Developer Intern",
-    company: "Detroit Tech Co",
-    meta: "Remote • $25/hr",
-    score: 86,
-  },
-  {
-    id: "job-uiux-designer",
-    title: "UI/UX Designer",
-    company: "Creative Studio",
-    meta: "Hybrid • $70k",
-    score: 79,
-  },
-  {
-    id: "job-qa-engineer",
-    title: "Software QA Engineer",
-    company: "AutoTech",
-    meta: "On-site • $78k",
-    score: 74,
-  },
-];
-
-export default function Matches() {
+export default function Jobs() {
   const { state, actions } = useApp();
+  const [query, setQuery] = useState("");
+
+  const filteredJobs = useMemo(() => {
+    const q = query.toLowerCase();
+
+    return jobs.filter(
+      (job) =>
+        job.title.toLowerCase().includes(q) ||
+        job.company.toLowerCase().includes(q) ||
+        job.location.toLowerCase().includes(q) ||
+        job.tags.some((tag) => tag.toLowerCase().includes(q))
+    );
+  }, [query]);
 
   return (
     <>
-      <AppShell title="AI Matches">
-        <Card className="text-brand-ink">
-          <h2 className="text-lg font-semibold">Your AI matches</h2>
-          <p className="text-sm text-black/60 mt-1">
-            These roles are ranked by fit based on your profile + resume (mocked for now).
-          </p>
-        </Card>
+      <AppShell title="Jobs">
+        <div className="space-y-4">
+          <Card className="text-brand-ink">
+            <h2 className="text-xl font-semibold">Browse Jobs</h2>
+            <p className="text-sm text-black/60 mt-1">
+              Search roles, view details, save jobs, and apply.
+            </p>
 
-        <div className="mt-4 space-y-4">
-          {matchedJobs.map((job) => {
-            const isSaved = state.savedMatches.includes(job.id);
+            <Input
+              className="mt-4"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by title, company, skill, or location..."
+            />
+          </Card>
+
+          <Divider />
+
+          {filteredJobs.map((job) => {
+            const isSaved = state.savedJobs.includes(job.id);
+            const isApplied = state.appliedJobs.some((app) => app.id === job.id);
 
             return (
-              <Card key={job.id} className="hover:bg-black/[0.02] transition">
+              <Card key={job.id} className="text-brand-ink">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-black/90 truncate">{job.title}</h3>
-                    <p className="text-black/60 text-sm">{job.company}</p>
-                    <p className="text-black/45 text-xs mt-1">{job.meta}</p>
+                  <div>
+                    <h3 className="font-semibold">{job.title}</h3>
+                    <p className="text-sm text-black/60">{job.company}</p>
+                    <p className="text-xs text-black/45 mt-1">
+                      {job.location} • {job.type} • {job.salary}
+                    </p>
                   </div>
 
-                  <Badge tone="success">{job.score}%</Badge>
+                  {isApplied ? (
+                    <Badge tone="success">Applied</Badge>
+                  ) : (
+                    <Badge>{job.location}</Badge>
+                  )}
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {job.tags.map((tag) => (
+                    <Badge key={tag} tone="pink">
+                      {tag}
+                    </Badge>
+                  ))}
                 </div>
 
                 <div className="mt-4 flex gap-3">
-                  {/* View job details */}
                   <Link to={`/jobs/${job.id}`} className="flex-1">
                     <Button className="w-full">View</Button>
                   </Link>
 
-                  {/* Save match */}
                   <Button
                     variant={isSaved ? "primary" : "secondary"}
                     className="flex-1"
-                    onClick={() => actions.toggleSavedMatch(job.id)}
+                    onClick={() => actions.toggleSavedJob(job.id)}
                   >
                     {isSaved ? "Saved" : "Save"}
+                  </Button>
+
+                  <Button
+                    variant={isApplied ? "secondary" : "primary"}
+                    className="flex-1"
+                    onClick={() => actions.applyToJob(job.id)}
+                    disabled={isApplied}
+                  >
+                    {isApplied ? "Applied" : "Apply"}
                   </Button>
                 </div>
               </Card>
