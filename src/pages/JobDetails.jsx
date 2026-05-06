@@ -1,17 +1,22 @@
 import { useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import BottomNav from "../components/BottomNav";
 import { Card, Badge, Button, Divider } from "../components/UI";
-import { jobs as JOBS } from "../data/jobs";
+import { jobs as FALLBACK_JOBS } from "../data/jobs";
 import { useApp } from "../context/AppContext";
 import { calculateMatchScore } from "../lib/matchScore";
 
 export default function JobDetails() {
   const { id } = useParams();
+  const location = useLocation();
   const { state, actions } = useApp();
 
-  const job = useMemo(() => JOBS.find((j) => j.id === id), [id]);
+  const jobFromState = location.state?.job;
+
+  const job = useMemo(() => {
+    return jobFromState || FALLBACK_JOBS.find((j) => j.id === id);
+  }, [id, jobFromState]);
 
   if (!job) {
     return (
@@ -22,6 +27,9 @@ export default function JobDetails() {
             <p className="text-sm text-black/60 mt-2">
               The selected job does not exist.
             </p>
+            <Link to="/jobs">
+              <Button className="mt-4">Back to Jobs</Button>
+            </Link>
           </Card>
         </AppShell>
         <BottomNav />
@@ -29,8 +37,11 @@ export default function JobDetails() {
     );
   }
 
-  const match = calculateMatchScore(state.extractedSkills, job.requirements);
-  const isSavedJob = state.savedJobs.includes(job.id);
+  const requirements = job.requirements || job.tags || ["Live job"];
+  const match = calculateMatchScore(state.extractedSkills || [], requirements);
+
+  const isSavedJob = state.savedJobs?.includes(job.id);
+  const isApplied = state.appliedJobs?.some((app) => app.id === job.id);
 
   return (
     <>
@@ -41,7 +52,7 @@ export default function JobDetails() {
               <h2 className="text-xl font-semibold">{job.title}</h2>
               <p className="text-sm text-black/60 mt-1">{job.company}</p>
               <p className="text-xs text-black/50 mt-2">
-                {job.location} • {job.type} • {job.salary}
+                {job.location} • {job.type || "Live Job"} • {job.salary}
               </p>
             </div>
 
@@ -54,14 +65,14 @@ export default function JobDetails() {
 
           <h3 className="font-semibold">Description</h3>
           <p className="text-sm text-black/70 mt-2 leading-relaxed">
-            {job.description}
+            {job.description || "No description available."}
           </p>
 
           <Divider className="my-4" />
 
           <h3 className="font-semibold">Requirements</h3>
           <ul className="mt-2 text-sm text-black/70 space-y-1 list-disc pl-5">
-            {job.requirements.map((r) => (
+            {requirements.map((r) => (
               <li key={r}>{r}</li>
             ))}
           </ul>
@@ -81,20 +92,32 @@ export default function JobDetails() {
           <div className="mt-5 flex gap-3">
             <Button
               variant={isSavedJob ? "primary" : "secondary"}
-              className="flex-1"
+              className={isApplied ? "w-full" : "flex-1"}
               onClick={() => actions.toggleSavedJob(job.id)}
             >
               {isSavedJob ? "Saved Job" : "Save Job"}
             </Button>
 
-            <Button
-              variant="secondary"
-              className="flex-1"
-              onClick={() => alert("Demo: Apply flow coming next sprint")}
-            >
-              Apply
-            </Button>
+            {!isApplied && (
+              <Link to={`/apply/${job.id}`} state={{ job }} className="flex-1">
+                <Button className="w-full">Apply</Button>
+              </Link>
+            )}
           </div>
+
+          {isApplied && (
+            <p className="mt-3 text-sm text-green-700 font-medium">
+              This job has been added to your application tracker.
+            </p>
+          )}
+
+          {job.url && job.url !== "#" && (
+            <a href={job.url} target="_blank" rel="noreferrer">
+              <Button variant="secondary" className="w-full mt-3">
+                View Original Posting
+              </Button>
+            </a>
+          )}
         </Card>
       </AppShell>
 

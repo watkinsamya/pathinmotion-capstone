@@ -4,27 +4,73 @@ import BottomNav from "../components/BottomNav";
 import { Card, Button, Divider, Badge } from "../components/UI";
 import { useApp } from "../context/AppContext";
 
-const SAMPLE_RESUME = `Amya Watkins
-Software Engineering student with experience in React, JavaScript, SQL, UI/UX, Figma, testing, Git, and API-based applications.
-Built mobile-first web interfaces and collaborated on software projects with focus on usability and design systems.
-Experience with resume-friendly project documentation, front-end development, and communication in team environments.`;
-
 export default function ResumeUpload() {
   const { state, actions } = useApp();
 
-  const [resumeText, setResumeText] = useState(state.resumeText || "");
-  const [uploadedResumeText, setUploadedResumeText] = useState("");
+  const [activeTab,        setActiveTab]        = useState("upload");
+  const [pasteText,        setPasteText]        = useState("");
   const [uploadedFileName, setUploadedFileName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [uploadingFile, setUploadingFile] = useState(false);
-  const [error, setError] = useState("");
-  const [uploadSuccess, setUploadSuccess] = useState("");
+  const [uploadedText,     setUploadedText]     = useState("");
+  const [loading,          setLoading]          = useState(false);
+  const [uploading,        setUploading]        = useState(false);
+  const [error,            setError]            = useState("");
+  const [uploadSuccess,    setUploadSuccess]    = useState("");
 
-  async function handleAnalyzeResume() {
-    const textToAnalyze = (uploadedResumeText || resumeText).trim();
+  // ── File upload handler ──
+  async function handleFileUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError("");
+    setUploadSuccess("");
+    setUploadedFileName(file.name);
+    setUploadedText("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res  = await fetch("/api/upload-resume", {
+        method: "POST",
+        body:   formData,
+      });
+
+      const raw = await res.text();
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        throw new Error("Server returned invalid response.");
+      }
+
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+
+      const extracted = (data.text || "").trim();
+      if (!extracted) throw new Error("No text could be extracted from this file.");
+
+      // Store text internally — DO NOT show it in a textarea
+      setUploadedText(extracted);
+      setUploadSuccess("Resume uploaded successfully. Click Analyze.");
+    } catch (err) {
+      setUploadedText("");
+      setUploadedFileName("");
+      setError(err.message || "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  // ── Analyze handler ──
+  async function handleAnalyze() {
+    const textToAnalyze = activeTab === "upload"
+      ? uploadedText
+      : pasteText.trim();
 
     if (!textToAnalyze) {
-      setError("Please upload a file or paste resume text.");
+      setError(activeTab === "upload"
+        ? "Please upload a resume file first."
+        : "Please paste your resume text first.");
       return;
     }
 
@@ -33,201 +79,184 @@ export default function ResumeUpload() {
 
     try {
       const res = await fetch("/api/analyze-resume", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ resumeText: textToAnalyze }),
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ resumeText: textToAnalyze }),
       });
 
       const raw = await res.text();
-      console.log("ANALYZE RAW:", raw);
-
       let data;
       try {
         data = JSON.parse(raw);
       } catch {
-        throw new Error("Server returned HTML instead of JSON.");
+        throw new Error("Server returned invalid response.");
       }
 
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to analyze resume");
-      }
+      if (!res.ok) throw new Error(data.error || "Analysis failed");
 
       actions.setResumeAnalysis({
-        resumeText: textToAnalyze,
-        skills: data.skills || [],
-        summary: data.summary || "",
-        targetRoles: data.targetRoles || data.roles || [],
+        resumeText:  textToAnalyze,
+        skills:      data.skills      || [],
+        summary:     data.summary     || "",
+        targetRoles: data.targetRoles || [],
       });
     } catch (err) {
-      console.error("ANALYZE ERROR:", err);
       setError(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleFileUpload(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploadingFile(true);
-    setError("");
-    setUploadSuccess("");
-    setUploadedFileName(file.name);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/upload-resume", {
-        method: "POST",
-        body: formData,
-      });
-
-      const raw = await res.text();
-      console.log("UPLOAD RAW:", raw);
-
-      let data;
-      try {
-        data = JSON.parse(raw);
-      } catch {
-        throw new Error("Server returned HTML instead of JSON.");
-      }
-
-      if (!res.ok) {
-        throw new Error(data.error || "Upload failed");
-      }
-
-      const extractedText = (data.text || "").trim();
-
-      if (!extractedText) {
-        throw new Error("No text could be extracted from file.");
-      }
-
-      setUploadedResumeText(extractedText);
-      setResumeText(extractedText);
-      setUploadSuccess("Resume uploaded successfully. Click Analyze.");
-    } catch (err) {
-      console.error("UPLOAD ERROR:", err);
-      setUploadedResumeText("");
-      setResumeText("");
-      setError(err.message || "Upload failed.");
-    } finally {
-      setUploadingFile(false);
-    }
-  }
-
-  function handleUseSample() {
-    setResumeText(SAMPLE_RESUME);
-    setUploadedResumeText("");
-    setUploadedFileName("");
-    setError("");
-    setUploadSuccess("Using sample resume.");
-  }
-
+  // ── Clear handler ──
   function handleClear() {
-    setResumeText("");
-    setUploadedResumeText("");
+    setUploadedText("");
     setUploadedFileName("");
-    setError("");
     setUploadSuccess("");
+    setPasteText("");
+    setError("");
     actions.clearResume();
+    // Reset file input
+    const input = document.getElementById("resume-file-input");
+    if (input) input.value = "";
   }
 
   return (
     <>
       <AppShell title="Resume">
         <div className="space-y-4">
-          <Card className="bg-gradient-to-b from-white to-slate-100 text-brand-ink">
-            <h2 className="text-xl font-semibold">Resume Upload & AI Analysis</h2>
 
+          {/* Header card */}
+          <Card className="bg-gradient-to-b from-white to-slate-100 text-brand-ink">
+            <h2 className="text-xl font-semibold">Resume Analysis</h2>
             <p className="text-sm text-black/60 mt-1">
-              Upload a file or paste your resume text. Then analyze it to extract
-              skills and generate AI-powered career matches.
+              Upload your resume or paste the text. We will extract your skills
+              and generate AI-powered career matches.
             </p>
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
               {state.resumeUploaded ? (
                 <Badge tone="success">Resume analyzed</Badge>
               ) : (
                 <Badge tone="warn">No resume analyzed</Badge>
               )}
-
               <Badge>{state.extractedSkills?.length || 0} skills found</Badge>
             </div>
 
             <Divider className="my-4" />
 
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-black/70">
-                Upload resume file
-              </label>
-
-              <input
-                type="file"
-                accept=".txt,.pdf,.docx"
-                onChange={handleFileUpload}
-                className="block w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
-              />
-
-              {uploadedFileName && (
-                <p className="text-xs text-black/60">
-                  Selected file: {uploadedFileName}
-                </p>
-              )}
-
-              {uploadingFile && (
-                <p className="text-sm text-black/60">Uploading file...</p>
-              )}
-
-              {uploadSuccess && (
-                <p className="text-sm text-green-600">{uploadSuccess}</p>
-              )}
-
-              <label className="text-sm font-medium text-black/70">
-                Or paste resume text
-              </label>
-
-              <textarea
-                value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
-                placeholder="Paste your resume text here..."
-                className="w-full min-h-[180px] rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand-sun/50"
-              />
+            {/* Tab switcher */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => { setActiveTab("upload"); setError(""); }}
+                className={
+                  "flex-1 py-2 rounded-xl text-sm font-semibold border transition-all " +
+                  (activeTab === "upload"
+                    ? "bg-brand-ink text-white border-brand-ink"
+                    : "bg-white text-black/60 border-black/10")
+                }
+              >
+                Upload File
+              </button>
+              <button
+                onClick={() => { setActiveTab("paste"); setError(""); }}
+                className={
+                  "flex-1 py-2 rounded-xl text-sm font-semibold border transition-all " +
+                  (activeTab === "paste"
+                    ? "bg-brand-ink text-white border-brand-ink"
+                    : "bg-white text-black/60 border-black/10")
+                }
+              >
+                Paste Text
+              </button>
             </div>
 
-            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+            {/* Upload tab */}
+            {activeTab === "upload" && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-black/70">
+                  Upload your resume (.pdf, .docx, or .txt)
+                </label>
 
-            <div className="mt-4 flex flex-wrap gap-3">
+                <input
+                  id="resume-file-input"
+                  type="file"
+                  accept=".txt,.pdf,.docx"
+                  onChange={handleFileUpload}
+                  className="block w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+                />
+
+                {uploading && (
+                  <p className="text-sm text-black/50">Uploading...</p>
+                )}
+
+                {uploadedFileName && !uploading && (
+                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                    <span className="text-green-600 text-lg">✅</span>
+                    <div>
+                      <p className="text-sm font-medium text-green-700">
+                        {uploadedFileName}
+                      </p>
+                      {uploadSuccess && (
+                        <p className="text-xs text-green-600">{uploadSuccess}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Paste tab */}
+            {activeTab === "paste" && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-black/70">
+                  Paste your resume text below
+                </label>
+                <textarea
+                  value={pasteText}
+                  onChange={(e) => setPasteText(e.target.value)}
+                  placeholder="Paste the full text of your resume here..."
+                  rows={8}
+                  className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand-sun/50 resize-none"
+                />
+              </div>
+            )}
+
+            {error && (
+              <p className="mt-3 text-sm text-red-600">{error}</p>
+            )}
+
+            {/* Action buttons */}
+            <div className="mt-4 flex gap-3">
               <Button
-                onClick={handleAnalyzeResume}
-                disabled={loading || uploadingFile}
+                onClick={handleAnalyze}
+                disabled={loading || uploading}
+                className="flex-1"
               >
                 {loading ? "Analyzing..." : "Analyze Resume"}
               </Button>
 
-              <Button variant="secondary" onClick={handleUseSample}>
-                Use Sample
-              </Button>
-
-              <Button variant="secondary" onClick={handleClear}>
+              <Button
+                variant="secondary"
+                onClick={handleClear}
+                className="flex-1"
+              >
                 Clear
               </Button>
             </div>
           </Card>
 
+          {/* AI Summary */}
           <Card className="text-brand-ink">
             <h3 className="font-semibold">AI Summary</h3>
             <p className="mt-2 text-sm text-black/70">
-              {state.resumeSummary || "Analyze a resume to see a summary."}
+              {state.resumeSummary || "Analyze a resume to see your summary here."}
             </p>
           </Card>
 
+          {/* Extracted Skills */}
           <Card className="text-brand-ink">
             <h3 className="font-semibold">Extracted Skills</h3>
-            {state.extractedSkills?.length === 0 ? (
+            {!state.extractedSkills || state.extractedSkills.length === 0 ? (
               <p className="mt-2 text-sm text-black/60">
                 No skills extracted yet.
               </p>
@@ -240,25 +269,24 @@ export default function ResumeUpload() {
             )}
           </Card>
 
+          {/* Target Roles */}
           <Card className="text-brand-ink">
             <h3 className="font-semibold">Suggested Target Roles</h3>
-            {state.targetRoles?.length === 0 ? (
+            {!state.targetRoles || state.targetRoles.length === 0 ? (
               <p className="mt-2 text-sm text-black/60">
                 No roles suggested yet.
               </p>
             ) : (
               <div className="mt-3 flex flex-wrap gap-2">
                 {state.targetRoles.map((role) => (
-                  <Badge key={role} tone="pink">
-                    {role}
-                  </Badge>
+                  <Badge key={role} tone="pink">{role}</Badge>
                 ))}
               </div>
             )}
           </Card>
+
         </div>
       </AppShell>
-
       <BottomNav />
     </>
   );
